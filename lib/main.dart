@@ -71,11 +71,12 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> _refresh() async {
     await Future.delayed(Duration(seconds: 2));
     setState(() {
-      _toDoList.sort((a, b) {
-        if (a["ok"] && !b["ok"]) return 1;
-        if (!a["ok"] && b["ok"]) return -1;
-        return 0;
-      });
+      // _toDoList.sort((a, b) {
+      //   if (a["ok"] && !b["ok"]) return 1;
+      //   if (!a["ok"] && b["ok"]) return -1;
+      //   return 0;
+      // });
+      _toDoList.sort((a, b) => a.toString().compareTo(b.toString()));
       _saveData();
     });
   }
@@ -107,11 +108,13 @@ class _MyHomePageState extends State<MyHomePage> {
                       decoration: InputDecoration(
                           labelText: "Telefone",
                           labelStyle: TextStyle(color: Colors.blueAccent))),
-                  SizedBox(width: 4.0),
+                  SizedBox(width: 4.0, height: 4.0,),
                   ElevatedButton(
                     onPressed: _addTodo,
-                    child: Text('ADD'),
-                  )
+                    child: Text('Adicionar'),
+                    
+                  ),
+                  SizedBox(width: 4.0, height: 4.0,),
                 ],
               ),
             ),
@@ -155,12 +158,19 @@ class _MyHomePageState extends State<MyHomePage> {
         //   secondary: Text(_toDoList[index]['name']),
         // ),
         child: Card(
-          child: Row(children: [            
-              Expanded(child: Text(_toDoList[index]['name'], style: TextStyle(color: Colors.blueAccent),)),
-              Expanded(child: Text(_toDoList[index]['telefone'], style: TextStyle(color: Colors.blueAccent),)),
-            ],
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            
+          color: Colors.blueAccent,
+          
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+
+              children: [            
+                Expanded(child: Text(_toDoList[index]['name'], style: TextStyle(color: Colors.white),   ),),
+                Expanded(child: Text(_toDoList[index]['telefone'], style: TextStyle(color: Colors.white), textAlign: TextAlign.end)),
+              ],            
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              
+            ),
           ),
           // child: ListTile(
           //   title: Text(_toDoList[index]['name'], style: TextStyle(color: Colors.blueAccent),),
