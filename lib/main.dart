@@ -2,13 +2,12 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:agenda/data.dart';
-import 'package:agenda/persistence/file_persistence.dart';
-import 'package:agenda/persistence/key_value_persistence.dart';
 
 void main() {
   runApp(MyApp());
 }
 
+// ignore: use_key_in_widget_constructors
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -18,6 +17,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       home: MyHomePage(title: 'Flutter Demo Home Page'),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -32,7 +32,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final PersistenceData data = new KeyValuePersistence();
+  PersistenceData data = DataFactory.getProvider();
 
   final _textController = TextEditingController();
   final _telefoneController = TextEditingController();
@@ -42,11 +42,14 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    _loadData();
+  }
+
+  void _loadData() {
     data.load().then((value) {
-      if (value.isNotEmpty)
-        setState(() {
-          _toDoList = json.decode(value);
-        });
+      setState(() {
+        _toDoList = value.isNotEmpty ? json.decode(value) : [];
+      });
     });
   }
 
@@ -60,7 +63,6 @@ class _MyHomePageState extends State<MyHomePage> {
       var newTodo = Map<String, dynamic>();
       newTodo["name"] = _textController.text;
       newTodo["telefone"] = _telefoneController.text;
-      newTodo["ok"] = false;
       _toDoList.insert(0, newTodo);
       _textController.clear();
       _telefoneController.clear();
@@ -71,11 +73,6 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> _refresh() async {
     await Future.delayed(Duration(seconds: 2));
     setState(() {
-      // _toDoList.sort((a, b) {
-      //   if (a["ok"] && !b["ok"]) return 1;
-      //   if (!a["ok"] && b["ok"]) return -1;
-      //   return 0;
-      // });
       _toDoList.sort((a, b) => a.toString().compareTo(b.toString()));
       _saveData();
     });
@@ -87,10 +84,20 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Lista de Contatos'),
-        backgroundColor: Colors.blueAccent,
-        centerTitle: true,
-      ),
+          title: Text('Agenda'),
+          backgroundColor: Colors.blueAccent,
+          centerTitle: true,
+          actions: [
+            PopupMenuButton(itemBuilder: (context) {
+              return persistenceProvider.values
+                  .map((e) => PopupMenuItem(
+                        child: StatefulBuilder(
+                          builder: (_, __) => buildProviderButton(e),
+                        ),
+                      ))
+                  .toList();
+            })
+          ]),
       body: Container(
         padding: EdgeInsets.all(8.0),
         child: Column(
@@ -105,16 +112,22 @@ class _MyHomePageState extends State<MyHomePage> {
                           labelStyle: TextStyle(color: Colors.blueAccent))),
                   TextField(
                       controller: _telefoneController,
+                      keyboardType: TextInputType.number,
                       decoration: InputDecoration(
                           labelText: "Telefone",
                           labelStyle: TextStyle(color: Colors.blueAccent))),
-                  SizedBox(width: 4.0, height: 4.0,),
+                  SizedBox(
+                    width: 4.0,
+                    height: 4.0,
+                  ),
                   ElevatedButton(
                     onPressed: _addTodo,
                     child: Text('Adicionar'),
-                    
                   ),
-                  SizedBox(width: 4.0, height: 4.0,),
+                  SizedBox(
+                    width: 4.0,
+                    height: 4.0,
+                  ),
                 ],
               ),
             ),
@@ -138,7 +151,7 @@ class _MyHomePageState extends State<MyHomePage> {
         key: Key(DateTime.now().millisecondsSinceEpoch.toString()),
         background: Container(
           color: Colors.red,
-          child: Align(
+          child: const Align(
             alignment: Alignment(-0.9, 0.0),
             child: Icon(
               Icons.delete,
@@ -147,36 +160,26 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
         direction: DismissDirection.startToEnd,
-        // child: CheckboxListTile(
-        //   value: _toDoList[index]['ok'],
-        //   onChanged: (c) {
-        //     setState(() {
-        //       _toDoList[index]['ok'] = c;
-        //     });
-        //   },
-        //   title: Text(_toDoList[index]['telefone']),
-        //   secondary: Text(_toDoList[index]['name']),
-        // ),
         child: Card(
           color: Colors.blueAccent,
-          
           child: Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
-
-              children: [            
-                Expanded(child: Text(_toDoList[index]['name'], style: TextStyle(color: Colors.white),   ),),
-                Expanded(child: Text(_toDoList[index]['telefone'], style: TextStyle(color: Colors.white), textAlign: TextAlign.end)),
-              ],            
+              children: [
+                Expanded(
+                  child: Text(
+                    _toDoList[index]['name'],
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+                Expanded(
+                    child: Text(_toDoList[index]['telefone'],
+                        style: TextStyle(color: Colors.white),
+                        textAlign: TextAlign.end)),
+              ],
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              
             ),
           ),
-          // child: ListTile(
-          //   title: Text(_toDoList[index]['name'], style: TextStyle(color: Colors.blueAccent),),
-          //   subtitle: Text(_toDoList[index]['telefone'], style: TextStyle(color: Colors.blueAccent),),
-          //   horizontalTitleGap: ,
-          // ),
         ),
         onDismissed: (_) {
           setState(() {
@@ -203,5 +206,33 @@ class _MyHomePageState extends State<MyHomePage> {
             ScaffoldMessenger.of(context).showSnackBar(snack);
           });
         });
+  }
+
+  Widget buildProviderButton(persistenceProvider type) {
+    return IconButton(
+      onPressed: () {
+        data = DataFactory.getProvider(type: type);
+        print(data);
+        _loadData();
+        Navigator.pop(context);
+      },
+      icon: Icon(
+        _getIcon(type),
+      ),
+      color: DataFactory.providerType == type ? Colors.blue : Colors.grey,
+    );
+  }
+
+  IconData _getIcon(persistenceProvider type) {
+    switch (type) {
+      case persistenceProvider.File:
+        return Icons.file_present_outlined;
+      case persistenceProvider.KeyValue:
+        return Icons.vpn_key;
+      case persistenceProvider.SQLite:
+        return Icons.storage_outlined;
+      default:
+        return Icons.file_present_outlined;
+    }
   }
 }

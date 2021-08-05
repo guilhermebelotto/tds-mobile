@@ -6,7 +6,7 @@ import 'package:path_provider/path_provider.dart';
 class FilePersistence implements PersistenceData {
   Future<String> get _localPath async {
     final directory = await getApplicationDocumentsDirectory();
-
+    print(directory);
     return directory.path;
   }
 
@@ -19,6 +19,7 @@ class FilePersistence implements PersistenceData {
   Future<String> load() async {
     try {
       final file = await _localFile;
+
       final contents = await file.readAsString();
       return contents;
     } catch (e) {
